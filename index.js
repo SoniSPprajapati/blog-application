@@ -2,6 +2,7 @@ console.clear();
 require("dotenv").config();
 const express = require("express");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
 
 const db = require("better-sqlite3")("database.db");
 db.pragma("journal_mode = WAL");
@@ -27,6 +28,7 @@ createTables();
 
 const app = express();
 app.set("view engine", "ejs"); // Setting ejs as our template engine
+app.use(cookieParser());
 
 // MARK: Middlewares
 app.use(express.static("public")); // Using public as our static
@@ -34,6 +36,8 @@ app.use(express.urlencoded({ extended: false })); // Parse form data
 
 app.use(function (req, res, next) {
   res.locals.errors = []; // Setting empty errors for all templates
+
+  console.log(req.cookies.user);
 
   next();
 });
@@ -95,7 +99,21 @@ app.post("/register", (req, res) => {
   const statement = db.prepare(
     `INSERT INTO users (username, password) VALUES (?, ?)`
   );
-  statement.run(username, password);
+  const result = statement.run(username, password);
+
+  const lookUp = db.prepare(`SELECT * FROM USERS WHERE ROWID = ?`);
+  const ourUser = lookUp.get(result.lastInsertRowid);
+
+  console.log("-----");
+  console.log(JSON.stringify(ourUser));
+
+  // Send back a cookie to the user
+  res.cookie("user", ourUser.id, {
+    httpOnly: true, // Not for client side JS
+    secure: true, // Only for https
+    sameSite: "strict", // CSRF Attacks but allows for subdomain
+    maxAge: 1000 * 60 * 60 * 24, // milliseconds, our cookie is good for a day
+  });
 
   return res.send(`Thank you for registration ${username}`);
 });
