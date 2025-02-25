@@ -1,5 +1,7 @@
 console.clear();
 require("dotenv").config();
+
+const jwt = require("jsonwebtoken");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
@@ -37,7 +39,18 @@ app.use(express.urlencoded({ extended: false })); // Parse form data
 app.use(function (req, res, next) {
   res.locals.errors = []; // Setting empty errors for all templates
 
-  console.log(req.cookies.user);
+  // Try to decode incoming cookie
+  try {
+    const decoded = jwt.verify(req.cookies.user, process.env.JWTSECRET);
+    req.user = decoded.userId;
+  } catch (err) {
+    console.log("There is either no cookie, or malformed");
+    req.user = false;
+  }
+
+  // req.locals.user = req.user; // Access from templates!
+
+  console.log(req.user);
 
   next();
 });
@@ -104,15 +117,17 @@ app.post("/register", (req, res) => {
   const lookUp = db.prepare(`SELECT * FROM USERS WHERE ROWID = ?`);
   const ourUser = lookUp.get(result.lastInsertRowid);
 
-  console.log("-----");
-  console.log(JSON.stringify(ourUser));
+  const ourTokenValue = jwt.sign(
+    { userId: ourUser.id, exp: Date.now() / 1000 + 60 * 60 * 24 * 7 },
+    process.env.JWTSECRET
+  );
 
   // Send back a cookie to the user
-  res.cookie("user", ourUser.id, {
+  res.cookie("user", ourTokenValue, {
     httpOnly: true, // Not for client side JS
     secure: true, // Only for https
     sameSite: "strict", // CSRF Attacks but allows for subdomain
-    maxAge: 1000 * 60 * 60 * 24, // milliseconds, our cookie is good for a day
+    maxAge: 1000 * 60 * 60 * 24 * 7, // milliseconds, our cookie is good for a week
   });
 
   return res.send(`Thank you for registration ${username}`);
@@ -152,6 +167,12 @@ app.post("/login", (req, res) => {
   }
 
   return res.send(`Thanks, you're now logged in! ${username}`);
+});
+
+// Logout
+app.get("/logout", (req, res) => {
+  res.clearCookie("user");
+  res.redirect("/");
 });
 
 app.listen(PORT, () => {
