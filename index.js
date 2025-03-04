@@ -36,7 +36,7 @@ app.use(cookieParser());
 app.use(express.static("public")); // Using public as our static
 app.use(express.urlencoded({ extended: false })); // Parse form data
 
-app.use(function (req, res, next) {
+app.use((req, res, next) => {
   res.locals.errors = []; // Setting empty errors for all templates
 
   // Try to decode incoming cookie
@@ -44,11 +44,10 @@ app.use(function (req, res, next) {
     const decoded = jwt.verify(req.cookies.user, process.env.JWTSECRET);
     req.user = decoded.userId;
   } catch (err) {
-    console.log("There is either no cookie, or malformed");
     req.user = false;
   }
 
-  // req.locals.user = req.user; // Access from templates!
+  res.locals.user = req.user; // Access from templates!
 
   console.log(req.user);
 
@@ -59,6 +58,10 @@ const users = {};
 
 // MARK: Routes
 app.get("/", (req, res) => {
+  if (req.user) {
+    return res.render("dashboard");
+  }
+
   res.render("homepage");
 });
 
@@ -85,8 +88,14 @@ app.post("/register", (req, res) => {
   if (username && !username.match(/^[a-zA-Z0-9]+$/)) {
     errors.push("Username can't contain special characters");
   }
-  // TODO: Check if user already exists in db
-  if (users[username]) {
+
+  // Check for username in DB
+  const usernameExistsStatement = db.prepare(
+    "SELECT * FROM users WHERE USERNAME = ?"
+  );
+  const usernameCheck = usernameExistsStatement.get(username);
+
+  if (usernameCheck) {
     errors.push("User already exists");
   }
 
@@ -114,6 +123,7 @@ app.post("/register", (req, res) => {
   );
   const result = statement.run(username, password);
 
+  // Get newly created user db rowid
   const lookUp = db.prepare(`SELECT * FROM USERS WHERE ROWID = ?`);
   const ourUser = lookUp.get(result.lastInsertRowid);
 
@@ -130,7 +140,7 @@ app.post("/register", (req, res) => {
     maxAge: 1000 * 60 * 60 * 24 * 7, // milliseconds, our cookie is good for a week
   });
 
-  return res.send(`Thank you for registration ${username}`);
+  res.redirect("/");
 });
 // User Registration Ends
 
@@ -138,6 +148,7 @@ app.get("/login", (req, res) => {
   res.render("login");
 });
 
+// Implement Login
 app.post("/login", (req, res) => {
   let { username, password } = req.body;
   const errors = [];
@@ -149,24 +160,49 @@ app.post("/login", (req, res) => {
 
   // Check for empty values
   if (!username || !password) {
-    errors.push("Please provide proper username & password");
-  }
-
-  // TODO: If not exists
-  if (!users[username]) {
-    errors.push("User does not exist");
-  }
-
-  // Check for password
-  if (users[username] !== password) {
     errors.push("Invalid username / password");
+  }
+
+  if (errors.length) {
+    return res.render("login", { errors });
+  }
+
+  // If username is not there in the database
+  const userInDBStatement = db.prepare(
+    `SELECT * FROM users WHERE USERNAME = ?`
+  );
+  const userInDB = userInDBStatement.get(username);
+
+  if (!userInDB) {
+    errors.push("User does not exist");
+    return res.render("login", { errors });
+  }
+
+  // Check for password matching
+  const passwordCheck = bcrypt.compareSync(password, userInDB.password);
+  if (!passwordCheck) {
+    errors.push("Password is incorrect");
   }
 
   if (errors.length > 0) {
     return res.render("login", { errors });
   }
 
-  return res.send(`Thanks, you're now logged in! ${username}`);
+  // Send back a cookie to the user
+  const ourTokenValue = jwt.sign(
+    { userId: userInDB.id, exp: Date.now() / 1000 + 60 * 60 * 24 * 7 },
+    process.env.JWTSECRET
+  );
+
+  res.cookie("user", ourTokenValue, {
+    httpOnly: true, // Not for client side JS
+    secure: true, // Only for https
+    sameSite: "strict", // CSRF Attacks but allows for subdomain
+    maxAge: 1000 * 60 * 60 * 24 * 7, // milliseconds, our cookie is good for a week
+  });
+
+  // Redirect them to the home page
+  res.redirect("/");
 });
 
 // Logout
