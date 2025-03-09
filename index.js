@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
+const sanitizeHtml = require("sanitize-html");
 
 const db = require("better-sqlite3")("database.db");
 db.pragma("journal_mode = WAL");
@@ -23,6 +24,19 @@ const createTables = db.transaction(() => {
       username STRING NOT NULL UNIQUE,
       password STRING NOT NULL
     )
+    `
+  ).run();
+
+  db.prepare(
+    `
+      CREATE TABLE IF NOT EXISTS papers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        createdDate TEXT,
+        title STRING NOT NULL,
+        body STRING NOT NULL,
+        authorid INTEGER,
+        FOREIGN KEY (authorid) REFERENCES users (id)
+      )
     `
   ).run();
 });
@@ -54,12 +68,13 @@ app.use((req, res, next) => {
   next();
 });
 
-const users = {};
-
 // MARK: Routes
 app.get("/", (req, res) => {
   if (req.user) {
-    return res.render("dashboard");
+    const statement = db.prepare(`SELECT * FROM papers WHERE authorid = ?`);
+    const papers = statement.all(req.user);
+
+    return res.render("dashboard", { papers });
   }
 
   res.render("homepage");
@@ -209,6 +224,154 @@ app.post("/login", (req, res) => {
 app.get("/logout", (req, res) => {
   res.clearCookie("user");
   res.redirect("/");
+});
+
+// Implement Post Functionality
+function mustBeLoggedIn(req, res, next) {
+  if (req.user) {
+    return next();
+  }
+
+  return res.redirect("/");
+}
+
+// Common post request validation field
+function postValidation(req) {
+  const errors = [];
+
+  if (typeof req.body.title !== "string") req.body.title = "";
+  if (typeof req.body.body !== "string") req.body.body = "";
+
+  // TODO: Do not allow or remove any html tags
+  req.body.title = sanitizeHtml(req.body.title, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+  req.body.body = sanitizeHtml(req.body.body, {
+    allowedTags: ["a"],
+    allowedAttributes: {
+      a: ["href"],
+    },
+  });
+
+  if (!req.body.title) errors.push("Title must not be empty");
+  if (!req.body.body) errors.push("Body must not be empty");
+
+  return errors;
+}
+
+app.get("/create-paper", mustBeLoggedIn, (req, res) => {
+  res.render("create-paper");
+});
+
+// Read a paper route
+app.get("/paper/:id", (req, res) => {
+  // Read operation on db
+  const statement = db.prepare(
+    `SELECT papers.*, users.username FROM papers INNER JOIN users ON papers.authorid = users.id WHERE papers.id = ?`
+  );
+  const paper = statement.get(req.params.id);
+
+  if (!paper) {
+    return res.redirect("/");
+  }
+
+  const isAuthor = paper.authorid === req.user;
+
+  return res.render("single-paper", { paper, isAuthor });
+});
+
+app.get("/edit-paper/:id", mustBeLoggedIn, (req, res) => {
+  // test if there is a paper with this id in the database
+  const statement = db.prepare(`SELECT * FROM papers WHERE id = ?`);
+  const paper = statement.get(req.params.id);
+
+  if (!paper) {
+    res.redirect("/");
+  }
+
+  // check if the user has access to edit this paper
+  if (paper.authorid !== req.user) {
+    return res.redirect("/");
+  }
+
+  // otherwise render the edit functionality
+  return res.render("edit-paper", { paper });
+});
+
+app.post("/edit-paper/:id", mustBeLoggedIn, (req, res) => {
+  // test if there is a paper with this id in the database
+  const statement = db.prepare(`SELECT * FROM papers WHERE id = ?`);
+  const paper = statement.get(req.params.id);
+
+  if (!paper) {
+    res.redirect("/");
+  }
+
+  // check if the user has access to edit this paper
+  if (paper.authorid !== req.user) {
+    return res.redirect("/");
+  }
+
+  const errors = postValidation(req);
+
+  if (errors.length) {
+    return res.redirect("edit-paper", { errors });
+  }
+
+  // Update into the database
+  const updateStatement = db.prepare(
+    `UPDATE papers SET title = ?, body = ? WHERE id = ?`
+  );
+  updateStatement.run(req.body.title, req.body.body, req.params.id);
+  return res.redirect(`/paper/${req.params.id}`);
+});
+
+app.post("/delete-paper/:id", mustBeLoggedIn, (req, res) => {
+  // test if there is a paper with this id in the database
+  const statement = db.prepare(`SELECT * FROM papers WHERE id = ?`);
+  const paper = statement.get(req.params.id);
+
+  if (!paper) {
+    res.redirect("/");
+  }
+
+  // check if the user has access to edit this paper
+  if (paper.authorid !== req.user) {
+    return res.redirect("/");
+  }
+
+  // Delete from database
+  const deleteStatement = db.prepare(`DELETE FROM papers WHERE id = ?`);
+  deleteStatement.run(req.params.id);
+
+  return res.redirect("/");
+});
+
+app.post("/create-paper", mustBeLoggedIn, (req, res) => {
+  const errors = postValidation(req);
+
+  if (errors.length) {
+    console.log("inside errors");
+    return res.render("create-paper", { errors });
+  }
+
+  // Save into database
+  const statement = db.prepare(
+    `INSERT INTO papers (title, body, authorid, createdDate) VALUES (?, ?, ?, ?)`
+  );
+  const result = statement.run(
+    req.body.title,
+    req.body.body,
+    req.user,
+    new Date().toISOString()
+  );
+
+  // Redirect user to newly created paper
+  const getPostStatement = db.prepare(`SELECT * FROM papers WHERE ROWID = ?`);
+  const realPost = getPostStatement.get(result.lastInsertRowid);
+
+  return res.redirect(`/paper/${realPost.id}`);
 });
 
 app.listen(PORT, () => {
