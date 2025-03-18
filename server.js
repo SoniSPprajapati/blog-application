@@ -1,47 +1,14 @@
 console.clear();
-require("dotenv").config();
 
-const jwt = require("jsonwebtoken");
-const express = require("express");
-const bcrypt = require("bcrypt");
-const cookieParser = require("cookie-parser");
-const sanitizeHtml = require("sanitize-html");
-const marked = require("marked");
-
-const db = require("better-sqlite3")("database.db");
-db.pragma("journal_mode = WAL");
+import jwt from "jsonwebtoken";
+import express from "express";
+import bcrypt from "bcrypt";
+import cookieParser from "cookie-parser";
+import sanitizeHtml from "sanitize-html";
+import { marked } from "marked";
+import { db } from "./lib/db.js";
 
 const PORT = process.env.PORT || 3000; // Getting port number from .env
-
-// Database Setup
-const createTables = db.transaction(() => {
-  // Create users table
-  // 1. write a sql statement db.prepare
-  // 2. to run it .run()
-  db.prepare(
-    `
-    CREATE TABLE IF NOT EXISTS users(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username STRING NOT NULL UNIQUE,
-      password STRING NOT NULL
-    )
-    `
-  ).run();
-
-  db.prepare(
-    `
-      CREATE TABLE IF NOT EXISTS papers(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        createdDate TEXT,
-        title STRING NOT NULL,
-        body STRING NOT NULL,
-        authorid INTEGER,
-        FOREIGN KEY (authorid) REFERENCES users (id)
-      )
-    `
-  ).run();
-});
-createTables();
 
 const app = express();
 app.set("view engine", "ejs"); // Setting ejs as our template engine
@@ -52,13 +19,6 @@ app.use(express.static("public")); // Using public as our static
 app.use(express.urlencoded({ extended: false })); // Parse form data
 
 app.use((req, res, next) => {
-  // Marked function for our template
-  res.locals.formatHTML = function (content) {
-    return marked.parse(content);
-  };
-
-  res.locals.errors = []; // Setting empty errors for all templates
-
   // Try to decode incoming cookie
   try {
     const decoded = jwt.verify(req.cookies.user, process.env.JWTSECRET);
@@ -68,7 +28,37 @@ app.use((req, res, next) => {
     req.user = false;
   }
 
+  // Variables for ejs templates
   res.locals.user = req.user; // Access from templates!
+  res.locals.errors = []; // Setting empty errors for all templates
+  res.locals.title = "Publish Research Papers";
+
+  // Functions for ejs templates
+  res.locals.formatHTML = function (content) {
+    return marked.parse(content);
+  };
+
+  res.locals.recentPapers = function () {
+    const recentStatement = db.prepare(
+      // TODO: Modify to only get the first four using sql statement
+      `SELECT * FROM papers ORDER BY createdDate DESC`
+    );
+
+    // Give recently published 4
+    const papers = recentStatement.all().slice(0, 4);
+    return papers;
+  };
+
+  res.locals.truncateTitle = function truncateTitle(title, maxLength = 30) {
+    return (
+      title.substring(0, maxLength) + (title.length > maxLength ? "..." : "")
+    );
+  };
+
+  res.locals.formatDate = function (dateTimeStamp) {
+    const date = new Intl.DateTimeFormat("en-US", dateTimeStamp);
+    return date.format();
+  };
 
   console.log(req.user);
 
@@ -259,15 +249,35 @@ function postValidation(req) {
   if (typeof req.body.title !== "string") req.body.title = "";
   if (typeof req.body.body !== "string") req.body.body = "";
 
-  // TODO: Do not allow or remove any html tags
+  // Strip or sanitize incoming HTML paper title, body
   req.body.title = sanitizeHtml(req.body.title, {
     allowedTags: [],
     allowedAttributes: {},
   });
+
   req.body.body = sanitizeHtml(req.body.body, {
-    allowedTags: ["a"],
+    allowedTags: [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "p",
+      "strong",
+      "em",
+      "b",
+      "i",
+      "ul",
+      "ol",
+      "li",
+      "hr",
+      "img",
+      "a",
+    ],
     allowedAttributes: {
       a: ["href"],
+      img: ["src", "alt"],
     },
   });
 

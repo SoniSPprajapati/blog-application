@@ -5,14 +5,12 @@
 <!--[if gt IE 8]><!-->
 <html class="no-js" lang="en">
   <!--<![endif]-->
-  <%- include('includes/main-head') %>
+  <%- include('includes/main-head', {title: paper.title}) %>
 
   <body>
     <!-- /.site-preloader -->
-    <%- include('includes/site-preloader') %>
-
-    <!-- TODO: Add this in ejs includes -->
-    <%- include('includes/main-header') %>
+    <%- include('includes/site-preloader') %> <%-
+    include('includes/main-header') %>
 
     <!--/.main-header-->
 
@@ -38,22 +36,22 @@
                 <li class="sep"></li>
                 <li
                   ><a href="category.html" class="date"
-                    ><%= new Date(paper.createdDate).getDate() %>&#8725;<%= new
-                    Date(paper.createdDate).toLocaleString('default', { month:
-                    'long' }); %>&#8725;<%= new
-                    Date(paper.createdDate).getFullYear() %></a
+                    ><%= formatDate(paper.createdDate) %></a
                   ></li
                 >
               </ul>
+              <h2 class="post-title"><%= paper.title %></h2>
             </header>
             <div class="single-post-content">
               <%- formatHTML(paper.body) %>
             </div>
 
-            <!-- TODO: Show recent research papers -->
+            <!-- Render recent research papers -->
             <div class="single-post-item">
               <h3>Recent Research Papers</h3>
               <div class="related-post-wrap">
+                <% for(let paper of recentPapers()) { %>
+
                 <article>
                   <div class="post-card horizontal-card img-hover-move">
                     <div class="post-thumb media">
@@ -63,182 +61,97 @@
                     </div>
                     <div class="post-content">
                       <ul class="post-meta">
-                        <li><a href="category.html">Lifestyle</a></li>
-                        <li class="sep"></li>
-                        <li>
-                          <a href="category.html" class="date">05.07.2024</a>
-                        </li>
+                        <li class="date"
+                          ><%= formatDate(paper.createdDate) %></li
+                        >
                       </ul>
                       <h3>
-                        <a href="single.html" class="text-hover"
-                          >In this Austrian town, extreme popular</a
+                        <a href="/paper/<%= paper.id %>" class="text-hover"
+                          ><%= truncateTitle(paper.title) %></a
                         >
                       </h3>
                       <ul class="post-card-footer">
                         <li>
-                          <a href="single.html" class="read-more"
+                          <a href="/paper/<%= paper.id %>" class="read-more"
                             >Continue Reading</a
                           >
                         </li>
-                        <li>
-                          <a href="#" class="comment">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              height="24"
-                              viewBox="0 -960 960 960"
-                              width="24"
-                              fill="currentColor"
-                            >
-                              <path
-                                d="M250.001-410.001h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm609.998 531.537L718.461-260.001H172.309q-30.308 0-51.308-21t-21-51.308v-455.382q0-30.308 21-51.308t51.308-21h615.382q30.308 0 51.308 21t21 51.308v669.227ZM172.309-320h571.69L800-264.615v-523.076q0-4.616-3.846-8.463-3.847-3.846-8.463-3.846H172.309q-4.616 0-8.463 3.846-3.846 3.847-3.846 8.463v455.382q0 4.616 3.846 8.463 3.847 3.846 8.463 3.846ZM160-320V-800v480Z"
-                              /></svg
-                            ><span>04</span>
-                          </a>
-                        </li>
+                        <!-- Comment count -->
+                        <!-- <li>
+                            <a href="#" class="comment">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                height="24"
+                                viewBox="0 -960 960 960"
+                                width="24"
+                                fill="currentColor"
+                              >
+                                <path
+                                  d="M250.001-410.001h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm609.998 531.537L718.461-260.001H172.309q-30.308 0-51.308-21t-21-51.308v-455.382q0-30.308 21-51.308t51.308-21h615.382q30.308 0 51.308 21t21 51.308v669.227ZM172.309-320h571.69L800-264.615v-523.076q0-4.616-3.846-8.463-3.847-3.846-8.463-3.846H172.309q-4.616 0-8.463 3.846-3.846 3.847-3.846 8.463v455.382q0 4.616 3.846 8.463 3.847 3.846 8.463 3.846ZM160-320V-800v480Z"
+                                /></svg
+                              ><span>04</span>
+                            </a>
+                          </li> -->
                       </ul>
                     </div>
                   </div>
                 </article>
-                <article>
-                  <div class="post-card horizontal-card img-hover-move">
-                    <div class="post-thumb media">
-                      <a href="single.html">
-                        <img src="/assets/img/post-2.jpg" alt="thumb" />
-                      </a>
-                    </div>
-                    <div class="post-content">
-                      <ul class="post-meta">
-                        <li><a href="category.html">Sports</a></li>
-                        <li class="sep"></li>
-                        <li>
-                          <a href="category.html" class="date">01.09.2024</a>
-                        </li>
-                      </ul>
-                      <h3>
-                        <a href="single.html" class="text-hover"
-                          >Mexico's controversial new $28.5bn tourist</a
-                        >
-                      </h3>
-                      <ul class="post-card-footer">
-                        <li>
-                          <a href="single.html" class="read-more"
-                            >Continue Reading</a
-                          >
-                        </li>
-                        <li>
-                          <a href="#" class="comment">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              height="24"
-                              viewBox="0 -960 960 960"
-                              width="24"
-                              fill="currentColor"
-                            >
-                              <path
-                                d="M250.001-410.001h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm609.998 531.537L718.461-260.001H172.309q-30.308 0-51.308-21t-21-51.308v-455.382q0-30.308 21-51.308t51.308-21h615.382q30.308 0 51.308 21t21 51.308v669.227ZM172.309-320h571.69L800-264.615v-523.076q0-4.616-3.846-8.463-3.847-3.846-8.463-3.846H172.309q-4.616 0-8.463 3.846-3.846 3.847-3.846 8.463v455.382q0 4.616 3.846 8.463 3.847 3.846 8.463 3.846ZM160-320V-800v480Z"
-                              /></svg
-                            ><span>05</span>
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </article>
-                <article>
-                  <div class="post-card horizontal-card img-hover-move">
-                    <div class="post-thumb media">
-                      <a href="single.html">
-                        <img src="/assets/img/post-3.jpg" alt="thumb" />
-                      </a>
-                    </div>
-                    <div class="post-content">
-                      <ul class="post-meta">
-                        <li><a href="category.html">Lifestyle</a></li>
-                        <li class="sep"></li>
-                        <li>
-                          <a href="category.html" class="date">08.02.2024</a>
-                        </li>
-                      </ul>
-                      <h3>
-                        <a href="single.html" class="text-hover"
-                          >French migration row engulfs island</a
-                        >
-                      </h3>
-                      <ul class="post-card-footer">
-                        <li>
-                          <a href="single.html" class="read-more"
-                            >Continue Reading</a
-                          >
-                        </li>
-                        <li>
-                          <a href="#" class="comment"
-                            ><svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              height="24"
-                              viewBox="0 -960 960 960"
-                              width="24"
-                              fill="currentColor"
-                            >
-                              <path
-                                d="M250.001-410.001h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm609.998 531.537L718.461-260.001H172.309q-30.308 0-51.308-21t-21-51.308v-455.382q0-30.308 21-51.308t51.308-21h615.382q30.308 0 51.308 21t21 51.308v669.227ZM172.309-320h571.69L800-264.615v-523.076q0-4.616-3.846-8.463-3.847-3.846-8.463-3.846H172.309q-4.616 0-8.463 3.846-3.846 3.847-3.846 8.463v455.382q0 4.616 3.846 8.463 3.847 3.846 8.463 3.846ZM160-320V-800v480Z"
-                              /></svg
-                            ><span>04</span>
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </article>
-                <article>
-                  <div class="post-card horizontal-card img-hover-move">
-                    <div class="post-thumb media">
-                      <a href="single.html">
-                        <img src="/assets/img/post-4.jpg" alt="thumb" />
-                      </a>
-                    </div>
-                    <div class="post-content">
-                      <ul class="post-meta">
-                        <li><a href="category.html">Fashion</a></li>
-                        <li class="sep"></li>
-                        <li>
-                          <a href="category.html" class="date">05.03.2024</a>
-                        </li>
-                      </ul>
-                      <h3>
-                        <a href="single.html" class="text-hover"
-                          >SpaceX blasts private company lander</a
-                        >
-                      </h3>
-                      <ul class="post-card-footer">
-                        <li>
-                          <a href="single.html" class="read-more"
-                            >Continue Reading</a
-                          >
-                        </li>
-                        <li>
-                          <a href="#" class="comment">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              height="24"
-                              viewBox="0 -960 960 960"
-                              width="24"
-                              fill="currentColor"
-                            >
-                              <path
-                                d="M250.001-410.001h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm0-120h459.998v-59.998H250.001v59.998Zm609.998 531.537L718.461-260.001H172.309q-30.308 0-51.308-21t-21-51.308v-455.382q0-30.308 21-51.308t51.308-21h615.382q30.308 0 51.308 21t21 51.308v669.227ZM172.309-320h571.69L800-264.615v-523.076q0-4.616-3.846-8.463-3.847-3.846-8.463-3.846H172.309q-4.616 0-8.463 3.846-3.846 3.847-3.846 8.463v455.382q0 4.616 3.846 8.463 3.847 3.846 8.463 3.846ZM160-320V-800v480Z"
-                              /></svg
-                            ><span>05</span>
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </article>
+                <% } %>
               </div>
             </div>
 
-            <!-- TODO: Add comments functionality -->
             <div class="single-post-item">
+              <ul class="single-post-navigation">
+                <li>
+                  <% if(paper.id > 1) { %>
+                  <a href="/paper/<%= paper.id - 1 %>"
+                    ><svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      height="24"
+                      viewBox="0 -960 960 960"
+                      width="24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M366.924-213.463 100.001-480.385l266.923-266.922 41.768 41.768-194.54 195.155h646.231v59.999H214.537l195.155 195.154-42.768 41.768Z"
+                      /></svg
+                    >Prev Posts</a
+                  >
+                  <% } else { %>
+                  <a
+                    ><svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      height="24"
+                      viewBox="0 -960 960 960"
+                      width="24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M366.924-213.463 100.001-480.385l266.923-266.922 41.768 41.768-194.54 195.155h646.231v59.999H214.537l195.155 195.154-42.768 41.768Z"
+                      /></svg
+                    >Prev Posts</a
+                  >
+                  <% } %>
+                </li>
+                <li
+                  ><a href="/paper/<%= paper.id + 1 %>"
+                    >Next Posts<svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      height="24"
+                      viewBox="0 -960 960 960"
+                      width="24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="m593.461-213.463-42.768-41.768 195.155-195.154H100.001v-59.999h646.231L551.693-705.539l41.768-41.768 266.922 266.922-266.922 266.922Z"
+                      /></svg></a
+                ></li>
+              </ul>
+            </div>
+            <!--/.post-navigation-->
+
+            <!-- Add comments functionality -->
+            <!-- <div class="single-post-item">
               <h3>Post Comments</h3>
               <ul class="comments-box">
                 <li class="comment">
@@ -359,7 +272,7 @@
                   </div>
                 </form>
               </div>
-            </div>
+            </div> -->
             <!--/.post-comments-->
           </div>
         </div>
@@ -367,19 +280,15 @@
     </section>
     <!--/.single-page-->
 
-    <!-- TODO: Add ejs includes -->
     <%- include('includes/footer') %>
     <!--/.footer-section-->
 
-    <!-- TODO: Add ejs includes -->
     <%- include('includes/scrollup') %>
     <!--scrollup-->
 
-    <!-- TODO: Add ejs includes  -->
     <%- include('includes/toggle-theme') %>
     <!-- Switch Button -->
 
-    <!-- TODO: Add ejs includes  -->
     <!--jQuery Lib-->
     <%- include('includes/scripts') %>
   </body>
