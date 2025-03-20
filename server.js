@@ -38,10 +38,16 @@ app.use((req, res, next) => {
     return marked.parse(content);
   };
 
+  res.locals.truncateHTML = function (content) {
+    return sanitizeHtml(content, {
+      allowedTags: [],
+      allowedAttributes: {},
+    });
+  };
+
   res.locals.recentPapers = function () {
     const recentStatement = db.prepare(
-      // TODO: Modify to only get the first four using sql statement
-      `SELECT * FROM papers ORDER BY createdDate DESC`
+      `SELECT * FROM papers ORDER BY createdDate DESC LIMIT 4`
     );
 
     // Give recently published 4
@@ -96,8 +102,8 @@ app.post("/register", (req, res) => {
   if (username && username.length < 4) {
     errors.push("Username must contain atleast 4 characters");
   }
-  if (username && username.length > 12) {
-    errors.push("Username must not exceed 12 characters");
+  if (username && username.length > 15) {
+    errors.push("Username must not exceed 15 characters");
   }
   if (username && !username.match(/^[a-zA-Z0-9]+$/)) {
     errors.push("Username can't contain special characters");
@@ -379,7 +385,6 @@ app.post("/create-paper", mustBeLoggedIn, (req, res) => {
   const errors = postValidation(req);
 
   if (errors.length) {
-    console.log("inside errors");
     return res.render("create-paper", { errors });
   }
 
@@ -395,7 +400,7 @@ app.post("/create-paper", mustBeLoggedIn, (req, res) => {
   );
 
   // Redirect user to newly created paper
-  const getPostStatement = db.prepare(`SELECT * FROM papers WHERE ROWID = ?`);
+  const getPostStatement = db.prepare(`SELECT id FROM papers WHERE ROWID = ?`);
   const realPost = getPostStatement.get(result.lastInsertRowid);
 
   return res.redirect(`/paper/${realPost.id}`);
