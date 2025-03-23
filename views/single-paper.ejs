@@ -79,25 +79,20 @@
                       
                         <!-- edit and delete functionality -->
                   
-                       <form action="/edit-paper/<%= paper.id %>" method="POST" style="display: inline;">
-                        <button
-                          type="submit"
-                          class="default-btn text-anim"
-                          data-text="Edit"
-                          style="background: rgb(71, 255, 187); margin-right: 10px; margin-top: 130px;"
-                        >Edit</button>
-                      </form>
-                      
-                      <form action="/delete-paper/<%= paper.id %>" method="POST" style="display: inline;"
-                        <button
-                          type="submit"
-                          class="default-btn text-anim"
-                          data-text="Delete"
-                          style="background: tomato; margin-right: 10px; margin-top: 130px;  ;"
-                        >Delete</button>
-                      </form>
+                        <% if(isAuthor){ %>
 
-
+                          <a href="/edit-paper/<%= paper.id %>">
+                            <button type="button">Edit</button>
+                          </a>
+                    
+                          <form
+                            action="/delete-paper/<%= paper.id %>"
+                            method="POST"
+                            style="display: inline"
+                          >
+                            <button type="submit">Delete</button>
+                          </form>
+                          <% } %>
 
 
                         <!-- Comment count -->
