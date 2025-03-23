@@ -76,6 +76,31 @@
                             >Continue Reading</a
                           >
                         </li>
+                       <br/>
+                    
+
+                       <form action="/edit-paper/<%= paper.id %>" method="POST" style="display: inline;">
+                        <button
+                          type="submit"
+                          class="default-btn text-anim"
+                          data-text="Edit"
+                          style="background: rgb(71, 255, 187); margin-right: 10px; margin-bottom: 10px;"
+                        >Edit</button>
+                      </form>
+                      
+                      <form action="/delete-paper/<%= paper.id %>" method="POST" style="display: inline;">
+                        
+                        <button
+                          type="submit"
+                          class="default-btn text-anim"
+                          data-text="Delete"
+                          style="background: tomato; margin-right: 10px; margin-bottom: 10px;"
+                        >Delete</button>
+                      </form>
+
+
+
+
                         <!-- Comment count -->
                         <!-- <li>
                             <a href="#" class="comment">
@@ -148,6 +173,11 @@
                 ></li>
               </ul>
             </div>
+
+          
+
+
+            
             <!--/.post-navigation-->
 
             <!-- Add comments functionality -->
